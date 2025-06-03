@@ -13,11 +13,14 @@ export class CartService {
   private http = inject(HttpClient);
   cart = signal<Cart | null>(null);
   itemCount = computed(() => {
-    return this.cart()?.items.reduce((sum, item) => sum + item.quantity, 0);
+    return (this.cart()?.items || []).reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
   });
   totals = computed(() => {
     const cart = this.cart();
-    if (!cart) return null;
+    if (!cart || !cart.items.length) return null;
     const subtotal = cart.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
@@ -71,7 +74,7 @@ export class CartService {
     }
   }
   deleteCart() {
-    this.http.delete(this.baseUrl + 'caty?id=' + this.cart()?.id).subscribe({
+    this.http.delete(this.baseUrl + 'cart?id=' + this.cart()?.id).subscribe({
       next: () => {
         localStorage.removeItem('cart_id');
         this.cart.set(null);
@@ -79,10 +82,13 @@ export class CartService {
     });
   }
   private addOrUpdateItem(
-    items: CartItem[],
+    items: CartItem[] | null | undefined,
     item: CartItem,
     quantity: number
   ): CartItem[] {
+    if (!items) {
+      items = [];
+    }
     const index = items.findIndex((x) => x.productId === item.productId);
     if (index === -1) {
       item.quantity = quantity;
